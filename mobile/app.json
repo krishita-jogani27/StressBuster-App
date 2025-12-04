@@ -23,16 +23,10 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#6366F1"
       },
-      "package": "com.stressbuster.app",
-      "permissions": [
-        "android.permission.DETECT_SCREEN_CAPTURE"
-      ]
+      "package": "com.stressbuster.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-font"
-    ]
+    }
   }
 }
