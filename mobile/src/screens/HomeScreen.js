@@ -20,11 +20,30 @@ import { resourceAPI, helplineAPI } from '../services/api';
 const HomeScreen = ({ navigation }) => {
     const [featuredResources, setFeaturedResources] = useState([]);
     const [helplines, setHelplines] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        loadFeaturedResources();
-        loadHelplines();
+        loadData();
     }, []);
+
+    const loadData = async () => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            // Load both in parallel
+            await Promise.all([
+                loadFeaturedResources(),
+                loadHelplines()
+            ]);
+        } catch (err) {
+            console.error('Error loading data:', err);
+            setError('Unable to load data. Please check your connection.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const loadFeaturedResources = async () => {
         try {
@@ -32,6 +51,7 @@ const HomeScreen = ({ navigation }) => {
             setFeaturedResources(response.data.slice(0, 3));
         } catch (error) {
             console.error('Error loading featured resources:', error);
+            // Don't throw - allow app to continue with empty resources
         }
     };
 
@@ -41,6 +61,7 @@ const HomeScreen = ({ navigation }) => {
             setHelplines(response.data.slice(0, 2));
         } catch (error) {
             console.error('Error loading helplines:', error);
+            // Don't throw - allow app to continue with empty helplines
         }
     };
 

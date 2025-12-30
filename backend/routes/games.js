@@ -41,6 +41,33 @@ router.post('/sessions', optionalAuth, async (req, res, next) => {
 });
 
 // ============================================
+// GET ALL GAME SESSIONS
+// GET /api/games/sessions?limit=10
+// ============================================
+router.get('/sessions', async (req, res, next) => {
+    try {
+        const { limit = 10 } = req.query;
+
+        const result = await executeQuery(
+            `SELECT id, user_id, game_type, duration_seconds, score, completed, created_at
+             FROM game_sessions 
+             ORDER BY created_at DESC 
+             LIMIT ?`,
+            [parseInt(limit)]
+        );
+
+        if (!result.success) {
+            return errorResponse(res, 'Failed to fetch game sessions', 500);
+        }
+
+        return successResponse(res, result.data, 'Game sessions retrieved successfully');
+
+    } catch (error) {
+        next(error);
+    }
+});
+
+// ============================================
 // GET USER GAME SESSIONS
 // GET /api/games/sessions/my
 // ============================================

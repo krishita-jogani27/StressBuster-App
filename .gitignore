@@ -1,4 +1,8 @@
-node_modules/ 
-.expo/ 
-.env 
-.DS_Store 
+node_modules/
+.env
+build/
+dist/
+.expo/
+.expo-shared/
+android/build/
+ios/build/

@@ -60,7 +60,7 @@ Edit `mobile-expo\src\services\api.js`:
 const API_BASE_URL = 'http://localhost:5000/api';
 
 // To your computer's IP:
-const API_BASE_URL = 'http://192.168.1.5:5000/api';  // Use YOUR IP!
+const API_BASE_URL = 'http://10.105.168.15:5000/api';  // Use YOUR IP!
 ```
 
 **Important:** Your phone and computer must be on the SAME WiFi network!
@@ -76,7 +76,7 @@ npx expo start
 ```
 Starting Metro Bundler
 
-› Metro waiting on exp://192.168.1.5:8081
+› Metro waiting on exp://10.105.168.15:8081
 › Scan the QR code above with Expo Go (Android) or the Camera app (iOS)
 
 › Press a │ open Android
@@ -156,7 +156,7 @@ When you edit code:
 
 **Solution 1:** Type your phone's IP manually in Expo Go
 - In Expo Go, tap "Enter URL manually"
-- Type: `exp://192.168.1.5:8081` (use YOUR computer's IP)
+- Type: `exp://10.105.168.15:8081` (use YOUR computer's IP)
 
 **Solution 2:** Use tunnel mode
 ```bash

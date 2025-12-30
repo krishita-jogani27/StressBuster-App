@@ -25,6 +25,7 @@ router.post('/register',
     ],
     async (req, res, next) => {
         try {
+            console.log('📝 Registration attempt:', { email: req.body.email, username: req.body.username });
             const { username, email, password, full_name, phone, age, gender, preferred_language } = req.body;
 
             // Check if user already exists
@@ -34,6 +35,7 @@ router.post('/register',
             );
 
             if (existingUser.data) {
+                console.log('❌ Registration failed: User already exists');
                 return errorResponse(res, 'User with this email or username already exists', 409);
             }
 
@@ -48,6 +50,7 @@ router.post('/register',
             );
 
             if (!result.success) {
+                console.log('❌ Registration failed: Database error');
                 return errorResponse(res, 'Failed to create user', 500);
             }
 
@@ -58,6 +61,7 @@ router.post('/register',
                 { expiresIn: '7d' }
             );
 
+            console.log('✅ Registration successful for user:', username);
             return successResponse(res, {
                 userId: result.insertId,
                 username,
@@ -66,6 +70,7 @@ router.post('/register',
             }, 'User registered successfully', 201);
 
         } catch (error) {
+            console.error('❌ Registration error:', error.message);
             next(error);
         }
     }
@@ -83,22 +88,48 @@ router.post('/login',
     ],
     async (req, res, next) => {
         try {
+            console.log('🔐 Login attempt:', { email: req.body.email });
             const { email, password } = req.body;
 
-            // Find user
+            // First, try to find user in regular users table
             const userResult = await getOne(
                 'SELECT id, username, email, password_hash, full_name, is_active FROM users WHERE email = ?',
                 [email]
             );
 
-            if (!userResult.data) {
+            let user = null;
+            let isAdmin = false;
+            let role = null;
+            let tableName = 'users';
+
+            if (userResult.data) {
+                user = userResult.data;
+                console.log('✅ User found in users table');
+            } else {
+                // If not found in users, check admin_users table
+                const adminResult = await getOne(
+                    'SELECT id, username, email, password_hash, full_name, role, is_active FROM admin_users WHERE email = ?',
+                    [email]
+                );
+
+                if (adminResult.data) {
+                    user = adminResult.data;
+                    isAdmin = true;
+                    role = adminResult.data.role;
+                    tableName = 'admin_users';
+                    console.log('✅ User found in admin_users table');
+                }
+            }
+
+            // If user not found in either table
+            if (!user) {
+                console.log('❌ Login failed: User not found');
                 return errorResponse(res, 'Invalid email or password', 401);
             }
 
-            const user = userResult.data;
-
             // Check if user is active
             if (!user.is_active) {
+                console.log('❌ Login failed: Account deactivated');
                 return errorResponse(res, 'Account is deactivated', 403);
             }
 
@@ -106,28 +137,51 @@ router.post('/login',
             const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 
             if (!isPasswordValid) {
+                console.log('❌ Login failed: Invalid password');
                 return errorResponse(res, 'Invalid email or password', 401);
             }
 
-            // Update last login
-            await executeQuery('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+            // Update last login in appropriate table
+            await executeQuery(`UPDATE ${tableName} SET last_login = NOW() WHERE id = ?`, [user.id]);
 
-            // Generate JWT token
+            // Generate JWT token with role information
+            const tokenPayload = {
+                userId: user.id,
+                username: user.username,
+                email: user.email,
+                isAdmin
+            };
+
+            if (isAdmin) {
+                tokenPayload.role = role;
+                tokenPayload.adminId = user.id;
+            }
+
             const token = jwt.sign(
-                { userId: user.id, username: user.username, email: user.email },
+                tokenPayload,
                 process.env.JWT_SECRET,
                 { expiresIn: '7d' }
             );
 
-            return successResponse(res, {
+            // Prepare response data
+            const responseData = {
                 userId: user.id,
                 username: user.username,
                 email: user.email,
                 full_name: user.full_name,
+                isAdmin,
                 token
-            }, 'Login successful');
+            };
+
+            if (isAdmin) {
+                responseData.role = role;
+            }
+
+            console.log('✅ Login successful for user:', user.username);
+            return successResponse(res, responseData, 'Login successful');
 
         } catch (error) {
+            console.error('❌ Login error:', error.message);
             next(error);
         }
     }

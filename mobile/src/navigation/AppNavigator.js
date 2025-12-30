@@ -6,6 +6,8 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { useAuth } from '../contexts/AuthContext';
 
 // Import screens
 import HomeScreen from '../screens/HomeScreen';
@@ -16,6 +18,7 @@ import GamesScreen from '../screens/GamesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/LoginScreen';
 import RegisterScreen from '../screens/RegisterScreen';
+import AdminDashboardScreen from '../screens/AdminDashboardScreen';
 
 // Game screens
 import BreathingGame from '../screens/games/BreathingGame';
@@ -27,7 +30,7 @@ import colors from '../constants/colors';
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-// Main Tab Navigator
+// Main Tab Navigator (for regular users)
 const MainTabs = () => {
     return (
         <Tab.Navigator
@@ -50,6 +53,9 @@ const MainTabs = () => {
                             break;
                         case 'Games':
                             iconName = focused ? 'game-controller' : 'game-controller-outline';
+                            break;
+                        case 'Profile':
+                            iconName = focused ? 'person' : 'person-outline';
                             break;
                     }
 
@@ -78,15 +84,29 @@ const MainTabs = () => {
             <Tab.Screen name="Appointments" component={AppointmentScreen} />
             <Tab.Screen name="Resources" component={ResourceHubScreen} />
             <Tab.Screen name="Games" component={GamesScreen} />
+            <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'My Profile' }} />
         </Tab.Navigator>
     );
 };
 
-// Root Stack Navigator
+// Loading screen
+const LoadingScreen = () => (
+    <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+    </View>
+);
+
+// Root Stack Navigator with conditional rendering
 const AppNavigator = () => {
+    const { isAuthenticated, user, loading } = useAuth();
+
+    // Show loading screen while checking auth
+    if (loading) {
+        return <LoadingScreen />;
+    }
+
     return (
         <Stack.Navigator
-            initialRouteName="MainTabs"
             screenOptions={{
                 headerStyle: {
                     backgroundColor: colors.primary,
@@ -97,43 +117,65 @@ const AppNavigator = () => {
                 },
             }}
         >
-            <Stack.Screen
-                name="MainTabs"
-                component={MainTabs}
-                options={{ headerShown: false }}
-            />
-            <Stack.Screen
-                name="Login"
-                component={LoginScreen}
-                options={{ title: 'Login' }}
-            />
-            <Stack.Screen
-                name="Register"
-                component={RegisterScreen}
-                options={{ title: 'Register' }}
-            />
-            <Stack.Screen
-                name="Profile"
-                component={ProfileScreen}
-                options={{ title: 'My Profile' }}
-            />
-            <Stack.Screen
-                name="BreathingGame"
-                component={BreathingGame}
-                options={{ title: 'Breathing Exercise' }}
-            />
-            <Stack.Screen
-                name="TapToRelaxGame"
-                component={TapToRelaxGame}
-                options={{ title: 'Tap to Relax' }}
-            />
-            <Stack.Screen
-                name="MemoryPuzzleGame"
-                component={MemoryPuzzleGame}
-                options={{ title: 'Memory Puzzle' }}
-            />
+            {!isAuthenticated ? (
+                // Auth screens (not logged in)
+                <>
+                    <Stack.Screen
+                        name="Login"
+                        component={LoginScreen}
+                        options={{ title: 'Login', headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="Register"
+                        component={RegisterScreen}
+                        options={{ title: 'Register' }}
+                    />
+                </>
+            ) : user?.isAdmin ? (
+                // Admin screens
+                <>
+                    <Stack.Screen
+                        name="AdminDashboard"
+                        component={AdminDashboardScreen}
+                        options={{ title: 'Admin Dashboard', headerShown: false }}
+                    />
+                </>
+            ) : (
+                // Regular user screens
+                <>
+                    <Stack.Screen
+                        name="MainTabs"
+                        component={MainTabs}
+                        options={{ headerShown: false }}
+                    />
+                    <Stack.Screen
+                        name="BreathingGame"
+                        component={BreathingGame}
+                        options={{ title: 'Breathing Exercise' }}
+                    />
+                    <Stack.Screen
+                        name="TapToRelaxGame"
+                        component={TapToRelaxGame}
+                        options={{ title: 'Tap to Relax' }}
+                    />
+                    <Stack.Screen
+                        name="MemoryPuzzleGame"
+                        component={MemoryPuzzleGame}
+                        options={{ title: 'Memory Puzzle' }}
+                    />
+                </>
+            )}
         </Stack.Navigator>
     );
 };
+
+const styles = StyleSheet.create({
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: colors.background,
+    },
+});
 
 export default AppNavigator;

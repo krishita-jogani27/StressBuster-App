@@ -14,7 +14,7 @@ import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import colors from '../constants/colors';
 import { authAPI } from '../services/api';
-import { saveAuthToken, saveUserData } from '../services/storage';
+import { useAuth } from '../contexts/AuthContext';
 
 const RegisterScreen = ({ navigation }) => {
     const [formData, setFormData] = useState({
@@ -24,24 +24,43 @@ const RegisterScreen = ({ navigation }) => {
         full_name: '',
     });
     const [loading, setLoading] = useState(false);
+    const { login } = useAuth();
 
     const updateField = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleRegister = async () => {
+        // Validate required fields
         if (!formData.username || !formData.email || !formData.password) {
             Alert.alert('Error', 'Please fill in all required fields');
             return;
         }
 
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(formData.email)) {
+            Alert.alert('Error', 'Please enter a valid email address');
+            return;
+        }
+
+        // Validate password length
+        if (formData.password.length < 6) {
+            Alert.alert('Error', 'Password must be at least 6 characters');
+            return;
+        }
+
         setLoading(true);
         try {
+            // Register the user
             const response = await authAPI.register(formData);
-            await saveAuthToken(response.data.token);
-            await saveUserData(response.data);
+
             Alert.alert('Success', 'Account created successfully!');
-            navigation.navigate('MainTabs');
+
+            // Auto-login after successful registration using AuthContext
+            // This will automatically navigate based on user role
+            await login(formData.email, formData.password);
+
         } catch (error) {
             Alert.alert('Error', error.message || 'Registration failed');
         } finally {

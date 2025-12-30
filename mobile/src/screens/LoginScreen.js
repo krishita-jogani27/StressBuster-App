@@ -8,41 +8,58 @@ import {
     Text,
     StyleSheet,
     ScrollView,
+    TouchableOpacity,
     Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import colors from '../constants/colors';
-import { authAPI } from '../services/api';
-import { saveAuthToken, saveUserData } from '../services/storage';
+import { useAuth } from '../contexts/AuthContext';
+import { clearAllData } from '../services/storage';
 
 const LoginScreen = ({ navigation }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+    const { login, authLoading } = useAuth();
 
     const handleLogin = async () => {
-        if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
-            return;
-        }
+        // Validation and navigation handled by AuthContext
+        await login(email, password);
+    };
 
-        setLoading(true);
-        try {
-            const response = await authAPI.login({ email, password });
-            await saveAuthToken(response.data.token);
-            await saveUserData(response.data);
-            Alert.alert('Success', 'Logged in successfully!');
-            navigation.navigate('MainTabs');
-        } catch (error) {
-            Alert.alert('Error', error.message || 'Login failed');
-        } finally {
-            setLoading(false);
-        }
+    const handleClearCache = () => {
+        Alert.alert(
+            'Clear All Data',
+            'This will clear all cached data including login info. You will need to login again. Continue?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Clear',
+                    style: 'destructive',
+                    onPress: async () => {
+                        await clearAllData();
+                        Alert.alert('Success', 'All cached data cleared! App will reload.');
+                        // Force reload by updating state
+                        setEmail('');
+                        setPassword('');
+                    }
+                }
+            ]
+        );
     };
 
     return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            {/* Dev Menu Button */}
+            <TouchableOpacity
+                style={styles.devButton}
+                onPress={handleClearCache}
+            >
+                <Ionicons name="trash-outline" size={20} color={colors.textSecondary} />
+                <Text style={styles.devButtonText}>Clear Cache</Text>
+            </TouchableOpacity>
+
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>Login to continue your wellness journey</Text>
 
@@ -66,7 +83,7 @@ const LoginScreen = ({ navigation }) => {
             <Button
                 title="Login"
                 onPress={handleLogin}
-                loading={loading}
+                loading={authLoading}
                 style={styles.button}
             />
 
@@ -87,6 +104,24 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 20,
+        paddingTop: 60,
+    },
+    devButton: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 8,
+        backgroundColor: colors.surface,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    devButtonText: {
+        fontSize: 12,
+        color: colors.textSecondary,
+        marginLeft: 4,
     },
     title: {
         fontSize: 28,

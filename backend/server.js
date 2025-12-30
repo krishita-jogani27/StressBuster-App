@@ -22,18 +22,21 @@ const helplineRoutes = require('./routes/helplines');
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // ============================================
 // MIDDLEWARE CONFIGURATION
 // ============================================
 
 // Enable CORS for cross-origin requests
+// In development, allow all origins for easier testing
 app.use(cors({
-    origin: [
-        process.env.FRONTEND_URL || 'http://localhost:3000',
-        process.env.MOBILE_APP_URL || 'http://localhost:8081'
-    ],
+    origin: process.env.NODE_ENV === 'production'
+        ? [
+            process.env.FRONTEND_URL || 'http://localhost:3000',
+            process.env.MOBILE_APP_URL || 'http://localhost:8081'
+        ]
+        : true, // Allow all origins in development
     credentials: true
 }));
 
@@ -47,6 +50,15 @@ app.use(express.urlencoded({ extended: true }));
 if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev'));
 }
+
+// Add custom request logging for debugging
+app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    if (req.method === 'POST' && req.path.includes('/auth/')) {
+        console.log('Request body:', { ...req.body, password: '***' }); // Hide password in logs
+    }
+    next();
+});
 
 // ============================================
 // API ROUTES
@@ -98,7 +110,7 @@ const startServer = async () => {
         }
 
         // Start listening for requests
-        app.listen(PORT, () => {
+        app.listen(PORT, '0.0.0.0', () => {
             console.log('='.repeat(50));
             console.log('🚀 StressBuster Backend API Server');
             console.log('='.repeat(50));
@@ -110,6 +122,8 @@ const startServer = async () => {
             console.log('Available endpoints:');
             console.log('  - POST   /api/auth/register');
             console.log('  - POST   /api/auth/login');
+            console.log('  - GET    /api/users/profile');
+            console.log('  - PUT    /api/users/profile');
             console.log('  - GET    /api/chatbot/conversation/:sessionId');
             console.log('  - POST   /api/chatbot/message');
             console.log('  - GET    /api/appointments');

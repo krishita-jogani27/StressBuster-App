@@ -17,11 +17,12 @@ import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
 import colors from '../constants/colors';
 import { userAPI } from '../services/api';
-import { removeAuthToken, removeUserData } from '../services/storage';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProfileScreen = ({ navigation }) => {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { logout } = useAuth();
 
     useEffect(() => {
         loadProfile();
@@ -29,10 +30,18 @@ const ProfileScreen = ({ navigation }) => {
 
     const loadProfile = async () => {
         try {
+            console.log('🔍 Loading profile...');
             const response = await userAPI.getProfile();
+            console.log('✅ Profile response:', response);
             setProfile(response.data);
         } catch (error) {
-            Alert.alert('Error', 'Failed to load profile');
+            console.error('❌ Profile load error:', error);
+            console.error('Error details:', {
+                message: error.message,
+                response: error.response,
+                request: error.request
+            });
+            Alert.alert('Error', error.message || 'Failed to load profile');
         } finally {
             setLoading(false);
         }
@@ -47,11 +56,7 @@ const ProfileScreen = ({ navigation }) => {
                 {
                     text: 'Logout',
                     style: 'destructive',
-                    onPress: async () => {
-                        await removeAuthToken();
-                        await removeUserData();
-                        navigation.navigate('Login');
-                    },
+                    onPress: logout,
                 },
             ]
         );
